@@ -174,12 +174,12 @@ func encode(object interface{}, encoding EncodingType) (buffer []byte, flag uint
 	return
 }
 
-func decode(buffer []byte, flag uint32, object interface{}) (err error) {
+func decode(buffer []byte, flags uint32, object interface{}) (err error) {
 	for encoding, decoder := range decoders {
-		if flag&encodingFlag(encoding) != 0 {
+		if flags&encodingFlag(encoding) != 0 {
 			return decoder(buffer, object)
 		}
 	}
-	err = errors.New("Unsupported decoding flag")
+	err = errors.New("Unsupported decoding flags")
 	return
 }
