@@ -20,6 +20,12 @@ const (
 	_CONFIG_SOCKET_PREFIX = "--SOCKET="
 )
 
+type ReturnType int
+type BehaviorType int
+type DistributionType int
+type HashType int
+type ConnectionType int
+
 type mcClient struct {
 	mc       *C.memcached_st
 	encoding EncodingType
@@ -75,12 +81,14 @@ func (self *mcClient) AddServer(host string, port int, weight uint32) error {
 			self.mc, cs_host, C.in_port_t(port), C.uint32_t(weight)))
 }
 
-func (self *mcClient) SetBehavior(behavior C.memcached_behavior_t, value uint64) error {
-	return self.checkError(C.memcached_behavior_set(self.mc, behavior, C.uint64_t(value)))
+func (self *mcClient) SetBehavior(behavior BehaviorType, value uint64) error {
+	return self.checkError(
+        C.memcached_behavior_set(
+            self.mc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
 }
 
-func (self *mcClient) GetBehavior(behavior C.memcached_behavior_t) uint64 {
-	return uint64(C.memcached_behavior_get(self.mc, behavior))
+func (self *mcClient) GetBehavior(behavior BehaviorType) uint64 {
+	return uint64(C.memcached_behavior_get(self.mc, C.memcached_behavior_t(behavior)))
 }
 
 func (self *mcClient) Increment(key string, offset uint32) (value uint64, err error) {
