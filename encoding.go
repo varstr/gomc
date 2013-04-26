@@ -180,6 +180,6 @@ func decode(buffer []byte, flags uint32, object interface{}) (err error) {
 			return decoder(buffer, object)
 		}
 	}
-	err = errors.New("Unsupported decoding flags")
-	return
+
+	return decodeDefault(buffer, object)
 }
