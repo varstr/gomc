@@ -27,7 +27,7 @@ var (
 	}
 )
 
-func start(servers []string, t *testing.T) (cmds []*exec.Cmd) {
+func start(servers []string) (cmds []*exec.Cmd) {
 	cmds = make([]*exec.Cmd, 0, len(servers))
 	for _, server := range servers {
 		var args []string
@@ -38,25 +38,21 @@ func start(servers []string, t *testing.T) (cmds []*exec.Cmd) {
 			args = []string{_MC_FLAG_TCP_PORT, port}
 		}
 		cmd := exec.Command(_MC_CMD, args...)
-		if err := cmd.Start(); err != nil {
-			t.Error("Fail to start:", err)
-		}
+		cmd.Start()
 		cmds = append(cmds, cmd)
 	}
 	return
 }
 
-func stop(cmds []*exec.Cmd, t *testing.T) {
+func stop(cmds []*exec.Cmd) {
 	for _, cmd := range cmds {
-		if err := cmd.Process.Kill(); err != nil {
-			t.Error("Fail to kill:", err)
-		}
+		cmd.Process.Kill()
 	}
 }
 
 func TestBehavior(t *testing.T) {
-	cmds := start(testHosts, t)
-	defer stop(cmds, t)
+	cmds := start(testHosts)
+	defer stop(cmds)
 
 	cli, err := NewClient(testHosts)
 	if err != nil {
@@ -73,8 +69,8 @@ func TestBehavior(t *testing.T) {
 }
 
 func TestSetGet(t *testing.T) {
-	cmds := start(testHosts, t)
-	defer stop(cmds, t)
+	cmds := start(testHosts)
+	defer stop(cmds)
 
 	var (
 		testKey   = "test-key"
@@ -106,8 +102,8 @@ func TestSetGet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	cmds := start(testHosts, t)
-	defer stop(cmds, t)
+	cmds := start(testHosts)
+	defer stop(cmds)
 
 	var (
 		testKey   = "test-key"
@@ -131,4 +127,41 @@ func TestDelete(t *testing.T) {
 	if err = cli.Get(testKey, &val); err == nil && val == testValue {
 		t.Error("Fail to delete")
 	}
+}
+
+func BenchmarkSet(b *testing.B) {
+    b.StopTimer()
+
+	cmds := start(testHosts)
+	defer stop(cmds)
+
+	cli, _ := NewClient(testHosts)
+    testKey := "test-key"
+    testValue := "test-value"
+
+    b.StartTimer()
+
+    for i:= 0; i < b.N; i++ {
+        cli.Set(testKey, testValue, 0)
+    }
+}
+
+func BenchmarkGet(b *testing.B) {
+    b.StopTimer()
+
+	cmds := start(testHosts)
+	defer stop(cmds)
+
+	cli, _ := NewClient(testHosts)
+    testKey := "test-key"
+    testValue := "test-value"
+    restoreValue := new(string)
+
+    cli.Set(testKey, testValue, 0)
+
+    b.StartTimer()
+
+    for i:= 0; i < b.N; i++ {
+        cli.Get(testKey, restoreValue)
+    }
 }
