@@ -26,12 +26,34 @@ type DistributionType int
 type HashType int
 type ConnectionType int
 
+type Client interface {
+    LastErrorMessage() string
+    AddServer(string, int, uint32) error
+    SetBehavior(BehaviorType, uint64) error
+    GetBehavior(BehaviorType) uint64
+    GenerateHash(string) uint32
+    Increment(string, uint32) (uint64, error)
+    Decrement(string, uint32) (uint64, error)
+    Delete(string, time.Duration) error
+    Exist(string) error
+    FlushBuffers() error
+    Flush(time.Duration) error
+    Get(string, interface{}) error
+    Add(string, interface{}, time.Duration) error
+    Replace(string, interface{}, time.Duration) error
+    Set(string, interface{}, time.Duration) error
+}
+
+func NewClient(servers []string) (self Client, err error) {
+    return newClient(servers)
+}
+
 type mcClient struct {
 	mc       *C.memcached_st
 	encoding EncodingType
 }
 
-func NewClient(servers []string) (self *mcClient, err error) {
+func newClient(servers []string) (self *mcClient, err error) {
 	cfg := make([]string, len(servers))
 	for i, server := range servers {
 		if strings.HasPrefix(server, "/") {
