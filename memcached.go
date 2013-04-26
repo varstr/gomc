@@ -92,6 +92,13 @@ func (self *mcClient) GetBehavior(behavior BehaviorType) uint64 {
 	return uint64(C.memcached_behavior_get(self.mc, C.memcached_behavior_t(behavior)))
 }
 
+func (self *mcClient) GenerateHash(key string) uint32 {
+	cs_key := C.CString(key)
+	defer C.free(unsafe.Pointer(cs_key))
+
+	return uint32(C.memcached_generate_hash(self.mc, cs_key, C.size_t(len(key))))
+}
+
 func (self *mcClient) Increment(key string, offset uint32) (value uint64, err error) {
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
