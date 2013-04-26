@@ -54,7 +54,7 @@ func testBaseTypes(origin, restore interface{}, t *testing.T) {
 	} else if e = decode(b, encodingFlag(ENCODING_DEFAULT), restore); e != nil {
 		t.Error("Fail to decode:", e)
 	} else if !equal(origin, restore) {
-		t.Error("Error restore", restore, ", expect:", origin)
+		t.Error("Error restore:", restore, ", expect:", origin)
 	}
 }
 
@@ -67,7 +67,7 @@ func testStruct(origin, restore interface{}, encoding EncodingType, t *testing.T
 	} else if e = decode(b, encodingFlag(encoding), restore); e != nil {
 		t.Error("Fail to decode:", e)
 	} else if !equal(origin, restore) {
-		t.Error("Error restore", restore, ", expect:", origin)
+		t.Error("Error restore:", restore, ", expect:", origin)
 	}
 
 }

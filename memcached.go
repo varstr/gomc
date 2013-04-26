@@ -32,14 +32,15 @@ type mcClient struct {
 }
 
 func NewClient(servers []string) (self *mcClient, err error) {
+	cfg := make([]string, len(servers))
 	for i, server := range servers {
 		if strings.HasPrefix(server, "/") {
-			servers[i] = _CONFIG_SOCKET_PREFIX + server
+			cfg[i] = _CONFIG_SOCKET_PREFIX + server
 		} else {
-			servers[i] = _CONFIG_SERVER_PREFIX + server
+			cfg[i] = _CONFIG_SERVER_PREFIX + server
 		}
 	}
-	config := strings.Join(servers, " ")
+	config := strings.Join(cfg, " ")
 	cs_config := C.CString(config)
 	defer C.free(unsafe.Pointer(cs_config))
 
@@ -64,9 +65,9 @@ func (self *mcClient) decode(buffer []byte, flag uint32, object interface{}) err
 
 func (self *mcClient) checkError(returnCode C.memcached_return_t) error {
 	if C.memcached_failed(returnCode) {
-		return nil
+		return errors.New(C.GoString(C.memcached_strerror(self.mc, returnCode)))
 	}
-	return errors.New(C.GoString(C.memcached_strerror(self.mc, returnCode)))
+	return nil
 }
 
 func (self *mcClient) LastErrorMessage() string {
@@ -83,8 +84,8 @@ func (self *mcClient) AddServer(host string, port int, weight uint32) error {
 
 func (self *mcClient) SetBehavior(behavior BehaviorType, value uint64) error {
 	return self.checkError(
-        C.memcached_behavior_set(
-            self.mc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
+		C.memcached_behavior_set(
+			self.mc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
 }
 
 func (self *mcClient) GetBehavior(behavior BehaviorType) uint64 {
