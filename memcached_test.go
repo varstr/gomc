@@ -130,38 +130,38 @@ func TestDelete(t *testing.T) {
 }
 
 func BenchmarkSet(b *testing.B) {
-    b.StopTimer()
+	b.StopTimer()
 
 	cmds := start(testHosts)
 	defer stop(cmds)
 
 	cli, _ := NewClient(testHosts)
-    testKey := "test-key"
-    testValue := "test-value"
+	testKey := "test-key"
+	testValue := "test-value"
 
-    b.StartTimer()
+	b.StartTimer()
 
-    for i:= 0; i < b.N; i++ {
-        cli.Set(testKey, testValue, 0)
-    }
+	for i := 0; i < b.N; i++ {
+		cli.Set(testKey, testValue, 0)
+	}
 }
 
 func BenchmarkGet(b *testing.B) {
-    b.StopTimer()
+	b.StopTimer()
 
 	cmds := start(testHosts)
 	defer stop(cmds)
 
 	cli, _ := NewClient(testHosts)
-    testKey := "test-key"
-    testValue := "test-value"
-    restoreValue := new(string)
+	testKey := "test-key"
+	testValue := "test-value"
+	restoreValue := new(string)
 
-    cli.Set(testKey, testValue, 0)
+	cli.Set(testKey, testValue, 0)
 
-    b.StartTimer()
+	b.StartTimer()
 
-    for i:= 0; i < b.N; i++ {
-        cli.Get(testKey, restoreValue)
-    }
+	for i := 0; i < b.N; i++ {
+		cli.Get(testKey, restoreValue)
+	}
 }

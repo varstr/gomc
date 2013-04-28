@@ -10,14 +10,8 @@ import "C"
 
 import (
 	"errors"
-	"strings"
 	"time"
 	"unsafe"
-)
-
-const (
-	_CONFIG_SERVER_PREFIX = "--SERVER="
-	_CONFIG_SOCKET_PREFIX = "--SOCKET="
 )
 
 type ReturnType int
@@ -26,49 +20,19 @@ type DistributionType int
 type HashType int
 type ConnectionType int
 
-type Client interface {
-    LastErrorMessage() string
-    AddServer(string, int, uint32) error
-    SetBehavior(BehaviorType, uint64) error
-    GetBehavior(BehaviorType) uint64
-    GenerateHash(string) uint32
-    Increment(string, uint32) (uint64, error)
-    Decrement(string, uint32) (uint64, error)
-    Delete(string, time.Duration) error
-    Exist(string) error
-    FlushBuffers() error
-    Flush(time.Duration) error
-    Get(string, interface{}) error
-    Add(string, interface{}, time.Duration) error
-    Replace(string, interface{}, time.Duration) error
-    Set(string, interface{}, time.Duration) error
-}
-
-func NewClient(servers []string) (self Client, err error) {
-    return newClient(servers)
-}
-
-type mcClient struct {
-	mc       *C.memcached_st
+type memcached struct {
+	mmc      *C.memcached_st
 	encoding EncodingType
 }
 
-func newClient(servers []string) (self *mcClient, err error) {
-	cfg := make([]string, len(servers))
-	for i, server := range servers {
-		if strings.HasPrefix(server, "/") {
-			cfg[i] = _CONFIG_SOCKET_PREFIX + server
-		} else {
-			cfg[i] = _CONFIG_SERVER_PREFIX + server
-		}
-	}
-	config := strings.Join(cfg, " ")
+func newMC(servers []string) (self *memcached, err error) {
+	config := clientConfig(servers)
 	cs_config := C.CString(config)
 	defer C.free(unsafe.Pointer(cs_config))
 
-	self = new(mcClient)
-	self.mc = C.memcached(cs_config, C.size_t(len(config)))
-	if self.mc == nil {
+	self = new(memcached)
+	self.mmc = C.memcached(cs_config, C.size_t(len(config)))
+	if self.mmc == nil {
 		err = self.checkError(
 			C.libmemcached_check_configuration(
 				cs_config, C.size_t(len(config)), nil, 0))
@@ -77,106 +41,106 @@ func newClient(servers []string) (self *mcClient, err error) {
 	return
 }
 
-func (self *mcClient) encode(object interface{}) ([]byte, uint32, error) {
+func (self *memcached) encode(object interface{}) ([]byte, uint32, error) {
 	return encode(object, self.encoding)
 }
 
-func (self *mcClient) decode(buffer []byte, flag uint32, object interface{}) error {
+func (self *memcached) decode(buffer []byte, flag uint32, object interface{}) error {
 	return decode(buffer, flag, object)
 }
 
-func (self *mcClient) checkError(returnCode C.memcached_return_t) error {
+func (self *memcached) checkError(returnCode C.memcached_return_t) error {
 	if C.memcached_failed(returnCode) {
-		return errors.New(C.GoString(C.memcached_strerror(self.mc, returnCode)))
+		return errors.New(C.GoString(C.memcached_strerror(self.mmc, returnCode)))
 	}
 	return nil
 }
 
-func (self *mcClient) LastErrorMessage() string {
-	return C.GoString(C.memcached_last_error_message(self.mc))
+func (self *memcached) LastErrorMessage() string {
+	return C.GoString(C.memcached_last_error_message(self.mmc))
 }
 
-func (self *mcClient) AddServer(host string, port int, weight uint32) error {
+func (self *memcached) AddServer(host string, port int, weight uint32) error {
 	cs_host := C.CString(host)
 	defer C.free(unsafe.Pointer(cs_host))
 	return self.checkError(
 		C.memcached_server_add_with_weight(
-			self.mc, cs_host, C.in_port_t(port), C.uint32_t(weight)))
+			self.mmc, cs_host, C.in_port_t(port), C.uint32_t(weight)))
 }
 
-func (self *mcClient) SetBehavior(behavior BehaviorType, value uint64) error {
+func (self *memcached) SetBehavior(behavior BehaviorType, value uint64) error {
 	return self.checkError(
 		C.memcached_behavior_set(
-			self.mc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
+			self.mmc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
 }
 
-func (self *mcClient) GetBehavior(behavior BehaviorType) uint64 {
-	return uint64(C.memcached_behavior_get(self.mc, C.memcached_behavior_t(behavior)))
+func (self *memcached) GetBehavior(behavior BehaviorType) (uint64, error) {
+	return uint64(C.memcached_behavior_get(self.mmc, C.memcached_behavior_t(behavior))), nil
 }
 
-func (self *mcClient) GenerateHash(key string) uint32 {
+func (self *memcached) GenerateHash(key string) (uint32, error) {
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 
-	return uint32(C.memcached_generate_hash(self.mc, cs_key, C.size_t(len(key))))
+	return uint32(C.memcached_generate_hash(self.mmc, cs_key, C.size_t(len(key)))), nil
 }
 
-func (self *mcClient) Increment(key string, offset uint32) (value uint64, err error) {
+func (self *memcached) Increment(key string, offset uint32) (value uint64, err error) {
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 	err = self.checkError(
 		C.memcached_increment(
-			self.mc, cs_key, C.size_t(len(key)), C.uint32_t(offset), (*C.uint64_t)(&value)))
+			self.mmc, cs_key, C.size_t(len(key)), C.uint32_t(offset), (*C.uint64_t)(&value)))
 	return
 }
 
-func (self *mcClient) Decrement(key string, offset uint32) (value uint64, err error) {
+func (self *memcached) Decrement(key string, offset uint32) (value uint64, err error) {
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 	err = self.checkError(
 		C.memcached_decrement(
-			self.mc, cs_key, C.size_t(len(key)), C.uint32_t(offset), (*C.uint64_t)(&value)))
+			self.mmc, cs_key, C.size_t(len(key)), C.uint32_t(offset), (*C.uint64_t)(&value)))
 	return
 }
 
-func (self *mcClient) Delete(key string, expiration time.Duration) error {
+func (self *memcached) Delete(key string, expiration time.Duration) error {
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 	return self.checkError(
 		C.memcached_delete(
-			self.mc, cs_key, C.size_t(len(key)), C.time_t(expiration.Seconds())))
+			self.mmc, cs_key, C.size_t(len(key)), C.time_t(expiration.Seconds())))
 }
 
-func (self *mcClient) Exist(key string) error {
+func (self *memcached) Exist(key string) error {
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
-	return self.checkError(C.memcached_exist(self.mc, cs_key, C.size_t(len(key))))
+	return self.checkError(C.memcached_exist(self.mmc, cs_key, C.size_t(len(key))))
 }
 
-func (self *mcClient) FlushBuffers() error {
-	return self.checkError(C.memcached_flush_buffers(self.mc))
+func (self *memcached) FlushBuffers() error {
+	return self.checkError(C.memcached_flush_buffers(self.mmc))
 }
 
-func (self *mcClient) Flush(expiration time.Duration) error {
-	return self.checkError(C.memcached_flush(self.mc, C.time_t(expiration.Seconds())))
+func (self *memcached) Flush(expiration time.Duration) error {
+	return self.checkError(C.memcached_flush(self.mmc, C.time_t(expiration.Seconds())))
 }
 
-func (self *mcClient) Get(key string, value interface{}) (err error) {
+func (self *memcached) Get(key string, value interface{}) (err error) {
 	flags := new(C.uint32_t)
-	cErr := new(C.memcached_return_t)
-	valueLen := new(C.size_t)
+	ret := new(C.memcached_return_t)
+	value_len := new(C.size_t)
 	cs_key := C.CString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 
-	raw := C.memcached_get(self.mc, cs_key, C.size_t(len(key)), valueLen, flags, cErr)
-	buffer := C.GoBytes(unsafe.Pointer(raw), C.int(*valueLen))
-	if err = self.checkError(*cErr); err != nil {
+	raw := C.memcached_get(self.mmc, cs_key, C.size_t(len(key)), value_len, flags, ret)
+	buffer := C.GoBytes(unsafe.Pointer(raw), C.int(*value_len))
+	if err = self.checkError(*ret); err != nil {
 		return
 	}
 	return decode(buffer, uint32(*flags), value)
 }
 
-func (self *mcClient) Add(key string, value interface{}, expiration time.Duration) (err error) {
+func (self *memcached) Add(key string, value interface{}, expiration time.Duration) (err error) {
 	buffer, flag, err := self.encode(value)
 	if err != nil {
 		return
@@ -188,11 +152,11 @@ func (self *mcClient) Add(key string, value interface{}, expiration time.Duratio
 
 	return self.checkError(
 		C.memcached_add(
-			self.mc, cs_key, C.size_t(len(key)), cs_value, C.size_t(len(buffer)),
+			self.mmc, cs_key, C.size_t(len(key)), cs_value, C.size_t(len(buffer)),
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
 }
 
-func (self *mcClient) Replace(key string, value interface{}, expiration time.Duration) (err error) {
+func (self *memcached) Replace(key string, value interface{}, expiration time.Duration) (err error) {
 	buffer, flag, err := self.encode(value)
 	if err != nil {
 		return
@@ -204,11 +168,11 @@ func (self *mcClient) Replace(key string, value interface{}, expiration time.Dur
 
 	return self.checkError(
 		C.memcached_replace(
-			self.mc, cs_key, C.size_t(len(key)), cs_value, C.size_t(len(buffer)),
+			self.mmc, cs_key, C.size_t(len(key)), cs_value, C.size_t(len(buffer)),
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
 }
 
-func (self *mcClient) Set(key string, value interface{}, expiration time.Duration) (err error) {
+func (self *memcached) Set(key string, value interface{}, expiration time.Duration) (err error) {
 	buffer, flag, err := self.encode(value)
 	if err != nil {
 		return
@@ -220,6 +184,6 @@ func (self *mcClient) Set(key string, value interface{}, expiration time.Duratio
 
 	return self.checkError(
 		C.memcached_set(
-			self.mc, cs_key, C.size_t(len(key)), cs_value, C.size_t(len(buffer)),
+			self.mmc, cs_key, C.size_t(len(key)), cs_value, C.size_t(len(buffer)),
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
 }
