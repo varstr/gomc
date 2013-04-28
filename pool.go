@@ -51,7 +51,8 @@ func (self *mcPool) SetBehavior(behavior BehaviorType, value uint64) error {
 
 func (self *mcPool) GetBehavior(behavior BehaviorType) (value uint64, err error) {
 	err = self.checkError(
-		C.memcached_pool_behavior_get(self.pool, C.memcached_behavior_t(behavior), (*C.uint64_t)(&value)))
+		C.memcached_pool_behavior_get(
+            self.pool, C.memcached_behavior_t(behavior), (*C.uint64_t)(&value)))
 	return
 }
 

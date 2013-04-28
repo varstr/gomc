@@ -25,7 +25,7 @@ type memcached struct {
 	encoding EncodingType
 }
 
-func newMC(servers []string) (self *memcached, err error) {
+func newMemcached(servers []string) (self *memcached, err error) {
 	config := clientConfig(servers)
 	cs_config := C.CString(config)
 	defer C.free(unsafe.Pointer(cs_config))

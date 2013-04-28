@@ -21,7 +21,7 @@ type Client interface {
 
 func NewClient(servers []string, poolSize int) (self Client, err error) {
 	if poolSize <= 1 {
-		return newMC(servers)
+		return newMemcached(servers)
 	}
 	return newPool(servers, 1, poolSize)
 }

@@ -54,16 +54,16 @@ func TestBehavior(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	cli, err := NewClient(testHosts)
+	mc, err := newMemcached(testHosts)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
 
-	if err = cli.SetBehavior(BEHAVIOR_DISTRIBUTION, uint64(DISTRIBUTION_CONSISTENT_KETAMA)); err != nil {
+	if err = mc.SetBehavior(BEHAVIOR_DISTRIBUTION, uint64(DISTRIBUTION_CONSISTENT_KETAMA)); err != nil {
 		t.Error("Fail to new client:", err)
 	}
 
-	if behavior := cli.GetBehavior(BEHAVIOR_DISTRIBUTION); DistributionType(behavior) != DISTRIBUTION_CONSISTENT_KETAMA {
+	if behavior, _ := mc.GetBehavior(BEHAVIOR_DISTRIBUTION); DistributionType(behavior) != DISTRIBUTION_CONSISTENT_KETAMA {
 		t.Error("Error behavior:", behavior, ", expect:", DISTRIBUTION_CONSISTENT_KETAMA)
 	}
 }
@@ -78,17 +78,17 @@ func TestSetGet(t *testing.T) {
 		testExpr  = time.Second
 	)
 
-	cli, err := NewClient(testHosts)
+	mc, err := newMemcached(testHosts)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
 
-	if err = cli.Set(testKey, testValue, testExpr); err != nil {
+	if err = mc.Set(testKey, testValue, testExpr); err != nil {
 		t.Error("Fail to set:", err)
 	}
 
 	var val string
-	if err = cli.Get(testKey, &val); err != nil {
+	if err = mc.Get(testKey, &val); err != nil {
 		t.Error("Fail to get:", err)
 	} else if val != testValue {
 		t.Error("Error get:", val, ", expect:", testValue)
@@ -96,7 +96,7 @@ func TestSetGet(t *testing.T) {
 
 	time.Sleep(testExpr)
 
-	if err = cli.Get(testKey, &val); err == nil && val == testValue {
+	if err = mc.Get(testKey, &val); err == nil && val == testValue {
 		t.Error("Fail to expire")
 	}
 }
@@ -110,21 +110,21 @@ func TestDelete(t *testing.T) {
 		testValue = "test-value"
 	)
 
-	cli, err := NewClient(testHosts)
+	mc, err := newMemcached(testHosts)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
 
-	if err = cli.Set(testKey, testValue, 0); err != nil {
+	if err = mc.Set(testKey, testValue, 0); err != nil {
 		t.Error("Fail to set:", err)
 	}
 
-	if err = cli.Delete(testKey, 0); err != nil {
+	if err = mc.Delete(testKey, 0); err != nil {
 		t.Error("Fail to delete:", err)
 	}
 
 	var val string
-	if err = cli.Get(testKey, &val); err == nil && val == testValue {
+	if err = mc.Get(testKey, &val); err == nil && val == testValue {
 		t.Error("Fail to delete")
 	}
 }
@@ -135,14 +135,14 @@ func BenchmarkSet(b *testing.B) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	cli, _ := NewClient(testHosts)
+	mc, _ := newMemcached(testHosts)
 	testKey := "test-key"
 	testValue := "test-value"
 
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		cli.Set(testKey, testValue, 0)
+		mc.Set(testKey, testValue, 0)
 	}
 }
 
@@ -152,16 +152,16 @@ func BenchmarkGet(b *testing.B) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	cli, _ := NewClient(testHosts)
+	mc, _ := newMemcached(testHosts)
 	testKey := "test-key"
 	testValue := "test-value"
 	restoreValue := new(string)
 
-	cli.Set(testKey, testValue, 0)
+	mc.Set(testKey, testValue, 0)
 
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		cli.Get(testKey, restoreValue)
+		mc.Get(testKey, restoreValue)
 	}
 }

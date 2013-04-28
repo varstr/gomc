@@ -11,8 +11,8 @@ const (
 	_CONFIG_SERVER_PREFIX = "--SERVER="
 	_CONFIG_SOCKET_PREFIX = "--SOCKET="
 
-	_CONFIG_POOL_MIN = "--POOL-MIN"
-	_CONFIG_POOL_MAX = "--POOL-MAX"
+	_CONFIG_POOL_MIN = "--POOL-MIN="
+	_CONFIG_POOL_MAX = "--POOL-MAX="
 )
 
 func join(options []string) string {
