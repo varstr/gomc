@@ -1,15 +1,15 @@
 package gomc
 
 import (
-    "testing"
-    "time"
+	"testing"
+	"time"
 )
 
 func TestPoolBehavior(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	pool, err := newPool(testHosts, 1, 2)
+	pool, err := newPool(testHosts, 1, 2, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
@@ -33,7 +33,7 @@ func TestPoolSetGet(t *testing.T) {
 		testExpr  = time.Second
 	)
 
-	pool, err := newPool(testHosts, 1, 2)
+	pool, err := newPool(testHosts, 1, 2, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
@@ -62,7 +62,7 @@ func BenchmarkPoolGet(b *testing.B) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	pool, _ := newPool(testHosts, 1, 2)
+	pool, _ := newPool(testHosts, 1, 2, ENCODING_DEFAULT)
 	testKey := "test-key"
 	testValue := "test-value"
 	restoreValue := new(string)

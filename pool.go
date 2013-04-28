@@ -20,7 +20,7 @@ type mcPool struct {
 	encoding EncodingType
 }
 
-func newPool(servers []string, initSize, maxSize int) (self *mcPool, err error) {
+func newPool(servers []string, initSize, maxSize int, encoding EncodingType) (self *mcPool, err error) {
 	config := poolConfig(servers, initSize, maxSize)
 	cs_config := C.CString(config)
 	defer C.free(unsafe.Pointer(cs_config))
@@ -33,6 +33,7 @@ func newPool(servers []string, initSize, maxSize int) (self *mcPool, err error) 
 				cs_config, C.size_t(len(config)), nil, 0))
 		return
 	}
+	self.encoding = encoding
 	return
 }
 
@@ -52,7 +53,7 @@ func (self *mcPool) SetBehavior(behavior BehaviorType, value uint64) error {
 func (self *mcPool) GetBehavior(behavior BehaviorType) (value uint64, err error) {
 	err = self.checkError(
 		C.memcached_pool_behavior_get(
-            self.pool, C.memcached_behavior_t(behavior), (*C.uint64_t)(&value)))
+			self.pool, C.memcached_behavior_t(behavior), (*C.uint64_t)(&value)))
 	return
 }
 

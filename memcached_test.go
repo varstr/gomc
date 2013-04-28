@@ -54,7 +54,7 @@ func TestBehavior(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	mc, err := newMemcached(testHosts)
+	mc, err := newMemcached(testHosts, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
@@ -78,7 +78,7 @@ func TestSetGet(t *testing.T) {
 		testExpr  = time.Second
 	)
 
-	mc, err := newMemcached(testHosts)
+	mc, err := newMemcached(testHosts, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
@@ -110,7 +110,7 @@ func TestDelete(t *testing.T) {
 		testValue = "test-value"
 	)
 
-	mc, err := newMemcached(testHosts)
+	mc, err := newMemcached(testHosts, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
@@ -135,7 +135,7 @@ func BenchmarkSet(b *testing.B) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	mc, _ := newMemcached(testHosts)
+	mc, _ := newMemcached(testHosts, ENCODING_DEFAULT)
 	testKey := "test-key"
 	testValue := "test-value"
 
@@ -152,7 +152,7 @@ func BenchmarkGet(b *testing.B) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	mc, _ := newMemcached(testHosts)
+	mc, _ := newMemcached(testHosts, ENCODING_DEFAULT)
 	testKey := "test-key"
 	testValue := "test-value"
 	restoreValue := new(string)

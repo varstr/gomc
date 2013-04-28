@@ -25,7 +25,7 @@ type memcached struct {
 	encoding EncodingType
 }
 
-func newMemcached(servers []string) (self *memcached, err error) {
+func newMemcached(servers []string, encoding EncodingType) (self *memcached, err error) {
 	config := clientConfig(servers)
 	cs_config := C.CString(config)
 	defer C.free(unsafe.Pointer(cs_config))
@@ -38,6 +38,7 @@ func newMemcached(servers []string) (self *memcached, err error) {
 				cs_config, C.size_t(len(config)), nil, 0))
 		return
 	}
+	self.encoding = encoding
 	return
 }
 

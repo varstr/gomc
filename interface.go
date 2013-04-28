@@ -19,9 +19,9 @@ type Client interface {
 	Set(string, interface{}, time.Duration) error
 }
 
-func NewClient(servers []string, poolSize int) (self Client, err error) {
+func NewClient(servers []string, poolSize int, encoding EncodingType) (self Client, err error) {
 	if poolSize <= 1 {
-		return newMemcached(servers)
+		return newMemcached(servers, encoding)
 	}
-	return newPool(servers, 1, poolSize)
+	return newPool(servers, 1, poolSize, encoding)
 }
