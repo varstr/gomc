@@ -2,6 +2,7 @@ package gomc
 
 import (
 	"os/exec"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -72,12 +73,9 @@ func TestSetGet(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	var (
-		testKey   = "test-key"
-		testValue = "test-value"
-		testExpr  = time.Second
-	)
-
+	testKey := "test-key"
+	testValue := "test-value"
+	testExpr := time.Second
 	mc, err := newMemcached(testHosts, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
@@ -99,6 +97,36 @@ func TestSetGet(t *testing.T) {
 	if err = mc.Get(testKey, &val); err == nil && val == testValue {
 		t.Error("Fail to expire")
 	}
+}
+
+func testSetGetWithEncoding(t *testing.T, encoding EncodingType) {
+	cmds := start(testHosts)
+	defer stop(cmds)
+
+	testKey := "test-key"
+	testValue := sampleStruct()
+	restoreValue := new(TestStruct)
+	mc, err := newMemcached(testHosts, encoding)
+	if err != nil {
+		t.Error("Fail to new client:", err)
+	}
+	if err = mc.Set(testKey, testValue, 0); err != nil {
+		t.Error("Fail to set:", err)
+	}
+
+	if err = mc.Get(testKey, restoreValue); err != nil {
+		t.Error("Fail to get:", err)
+	} else if !reflect.DeepEqual(testValue, restoreValue) {
+		t.Error("Error get:", restoreValue, ", expect:", testValue)
+	}
+}
+
+func TestGobSetGet(t *testing.T) {
+	testSetGetWithEncoding(t, ENCODING_GOB)
+}
+
+func TestJsonSetGet(t *testing.T) {
+	testSetGetWithEncoding(t, ENCODING_JSON)
 }
 
 func TestDelete(t *testing.T) {

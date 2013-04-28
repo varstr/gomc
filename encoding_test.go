@@ -5,10 +5,20 @@ import (
 	"testing"
 )
 
-type Test struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-	Z int `json:"z"`
+type TestStruct struct {
+	Str   string            `json: str`
+	Int   int               `json: int`
+	Slice []string          `json: slice`
+	Map   map[string]string `json: map`
+}
+
+func sampleStruct() *TestStruct {
+	return &TestStruct{
+		Str:   "string",
+		Int:   42,
+		Slice: []string{"x", "y", "z"},
+		Map:   map[string]string{"1": "x", "2": "y", "3": "z"},
+	}
 }
 
 func equal(origin, restore interface{}) bool {
@@ -39,8 +49,8 @@ func equal(origin, restore interface{}) bool {
 		return origin == *restore.(*string)
 	case *[]byte:
 		return reflect.DeepEqual(origin, *restore.(*[]byte))
-	case *Test:
-		return reflect.DeepEqual(origin, restore.(*Test))
+	case *TestStruct:
+		return reflect.DeepEqual(origin, restore.(*TestStruct))
 	}
 	return false
 }
@@ -145,13 +155,51 @@ func TestByteSlice(t *testing.T) {
 }
 
 func TestStructGob(t *testing.T) {
-	origin := &Test{1, 2, 3}
-	restore := new(Test)
+	origin := sampleStruct()
+	restore := new(TestStruct)
 	testStruct(origin, restore, ENCODING_GOB, t)
 }
 
 func TestStructJSON(t *testing.T) {
-	origin := &Test{1, 2, 3}
-	restore := new(Test)
+	origin := sampleStruct()
+	restore := new(TestStruct)
 	testStruct(origin, restore, ENCODING_JSON, t)
+}
+
+func benchmarkEncode(b *testing.B, encoding EncodingType) {
+	b.StopTimer()
+	origin := sampleStruct()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		encode(origin, encoding)
+	}
+}
+
+func benchmarkDecode(b *testing.B, encoding EncodingType) {
+	b.StopTimer()
+	origin := sampleStruct()
+	restore := new(TestStruct)
+	buffer, flag, _ := encode(origin, encoding)
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		decode(buffer, flag, restore)
+	}
+}
+
+func BenchmarkEncodeGob(b *testing.B) {
+	benchmarkEncode(b, ENCODING_GOB)
+}
+
+func BenchmarkDecodeGob(b *testing.B) {
+	benchmarkDecode(b, ENCODING_GOB)
+}
+
+func BenchmarkEncodeJSON(b *testing.B) {
+	benchmarkEncode(b, ENCODING_JSON)
+}
+
+func BenchmarkDecodeJSON(b *testing.B) {
+	benchmarkDecode(b, ENCODING_JSON)
 }
