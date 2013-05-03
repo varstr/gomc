@@ -142,6 +142,16 @@ func (self *mcPool) Get(key string, value interface{}) (err error) {
 	return conn.Get(key, value)
 }
 
+func (self *mcPool) GetMulti(keys []string) (res Result, err error) {
+	conn, err := self.fetchConnection()
+	defer self.releaseConnection(conn)
+	if err != nil {
+		return
+	}
+
+	return conn.GetMulti(keys)
+}
+
 func (self *mcPool) Add(key string, value interface{}, expiration time.Duration) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)

@@ -1,6 +1,7 @@
 package gomc
 
 import (
+    "math/rand"
 	"reflect"
 	"testing"
 )
@@ -12,12 +13,24 @@ type TestStruct struct {
 	Map   map[string]string `json: map`
 }
 
-func sampleStruct() *TestStruct {
+func randomStr(l int) string {
+	bytes := make([]byte, l)
+	for i := 0; i < l; i++ {
+		bytes[i] = byte(randInt(33, 90))
+	}
+	return string(bytes)
+}
+
+func randInt(min int, max int) int {
+	return min + rand.Intn(max-min)
+}
+
+func randomStruct() *TestStruct {
 	return &TestStruct{
-		Str:   "string",
-		Int:   42,
-		Slice: []string{"x", "y", "z"},
-		Map:   map[string]string{"1": "x", "2": "y", "3": "z"},
+		Str:   randomStr(10),
+		Int:   randInt(0, 100),
+		Slice: []string{randomStr(5), randomStr(5), randomStr(5)},
+		Map:   map[string]string{randomStr(5): randomStr(10), randomStr(5): randomStr(10), randomStr(5): randomStr(10)},
 	}
 }
 
@@ -155,20 +168,20 @@ func TestByteSlice(t *testing.T) {
 }
 
 func TestStructGob(t *testing.T) {
-	origin := sampleStruct()
+	origin := randomStruct()
 	restore := new(TestStruct)
 	testStruct(origin, restore, ENCODING_GOB, t)
 }
 
 func TestStructJSON(t *testing.T) {
-	origin := sampleStruct()
+	origin := randomStruct()
 	restore := new(TestStruct)
 	testStruct(origin, restore, ENCODING_JSON, t)
 }
 
 func benchmarkEncode(b *testing.B, encoding EncodingType) {
 	b.StopTimer()
-	origin := sampleStruct()
+	origin := randomStruct()
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -178,7 +191,7 @@ func benchmarkEncode(b *testing.B, encoding EncodingType) {
 
 func benchmarkDecode(b *testing.B, encoding EncodingType) {
 	b.StopTimer()
-	origin := sampleStruct()
+	origin := randomStruct()
 	restore := new(TestStruct)
 	buffer, flag, _ := encode(origin, encoding)
 	b.StartTimer()

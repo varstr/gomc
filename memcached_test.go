@@ -3,6 +3,7 @@ package gomc
 import (
 	"os/exec"
 	"reflect"
+    "strconv"
 	"strings"
 	"testing"
 	"time"
@@ -104,7 +105,7 @@ func testSetGetWithEncoding(t *testing.T, encoding EncodingType) {
 	defer stop(cmds)
 
 	testKey := "test-key"
-	testValue := sampleStruct()
+	testValue := randomStruct()
 	restoreValue := new(TestStruct)
 	mc, err := newMemcached(testHosts, encoding)
 	if err != nil {
@@ -129,15 +130,52 @@ func TestJsonSetGet(t *testing.T) {
 	testSetGetWithEncoding(t, ENCODING_JSON)
 }
 
+func TestGetMulti(t *testing.T) {
+	cmds := start(testHosts)
+	defer stop(cmds)
+
+    num := 10
+    testKeyPrefix := "test-key:"
+    testKeys := make([]string, num)
+    testStructs := make(map[string]*TestStruct, num)
+	restoreValue := new(TestStruct)
+	mc, err := newMemcached(testHosts, ENCODING_JSON)
+	if err != nil {
+		t.Error("Fail to new client:", err)
+	}
+
+    for i:=0; i<num; i++ {
+        testKey := testKeyPrefix + strconv.Itoa(i)
+        testValue := randomStruct()
+        testKeys = append(testKeys, testKey)
+        testStructs[testKey] = testValue
+        if err = mc.Set(testKey, testValue, 0); err != nil {
+            t.Error("Fail to set:", err)
+        }
+    }
+
+    res, err := mc.GetMulti(testKeys)
+    if err != nil {
+		t.Error("Fail to get-multi:", err)
+	}
+
+    t.Log(res)
+
+    for testKey, testValue := range testStructs {
+        if err := res.Get(testKey, restoreValue); err != nil {
+            t.Error("Fail to get:", err)
+        } else if !reflect.DeepEqual(testValue, restoreValue) {
+            t.Error("Error get:", restoreValue, ", expect:", testValue)
+        }
+    }
+}
+
 func TestDelete(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	var (
-		testKey   = "test-key"
-		testValue = "test-value"
-	)
-
+    testKey   := "test-key"
+    testValue := "test-value"
 	mc, err := newMemcached(testHosts, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)
