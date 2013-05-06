@@ -43,6 +43,9 @@ func main() {
 ```
 
 ##Encoding##
+
+gomc will handle some encode/decode stuff between Go types and raw bytes stored in memcached. 
+
 ###Base Types###
 - For base types, just use strconv no matter what encoding flag you choose when initializing the client.
 - For string and byte silce, do nothing.
@@ -50,7 +53,7 @@ func main() {
 ###Complex Types###
 - Two options are available for complex structs and types: ENCODING_GOB/ENCODING_JSON.
 - JSON is faster, but unable to dump some types like map[int]string.
-- Decoding gob is relatively slow, but works for almost anything .(In the worse case, implements GobEncoder and GobDecoder by yourself)
+- Decoding gob is relatively slow, but works for almost anything. In the worse case, implements GobEncoder and GobDecoder by yourself.
 
 ###Benchmark Detail###
 ```
