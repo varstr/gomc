@@ -36,7 +36,7 @@ func main() {
     res, _ := cli.GetMulti(keys)
     for _, key := keys {
         var val string
-        res.Get("key1", &val)
+        res.Get(key, &val)
         fmt.Println(val)
     }
 }
