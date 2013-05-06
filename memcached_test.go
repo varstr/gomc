@@ -146,11 +146,10 @@ func TestGetMulti(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-	num := 10
+	num := 3
 	testKeyPrefix := "test-key:"
 	testKeys := make([]string, num)
 	testStructs := make(map[string]*TestStruct, num)
-	restoreValue := new(TestStruct)
 	mc, err := newMemcached(testHosts, ENCODING_JSON)
 	if err != nil {
 		t.Error("Fail to new client:", err)
@@ -159,7 +158,7 @@ func TestGetMulti(t *testing.T) {
 	for i := 0; i < num; i++ {
 		testKey := testKeyPrefix + strconv.Itoa(i)
 		testValue := randomStruct()
-		testKeys = append(testKeys, testKey)
+		testKeys[i] = testKey
 		testStructs[testKey] = testValue
 		if err = mc.Set(testKey, testValue, 0); err != nil {
 			t.Error("Fail to set:", err)
@@ -171,13 +170,12 @@ func TestGetMulti(t *testing.T) {
 		t.Error("Fail to get-multi:", err)
 	}
 
-	t.Log(res)
-
 	for testKey, testValue := range testStructs {
+		restoreValue := new(TestStruct)
 		if err := res.Get(testKey, restoreValue); err != nil {
 			t.Error("Fail to get:", err)
 		} else if !reflect.DeepEqual(testValue, restoreValue) {
-			t.Error("Error get:", restoreValue, ", expect:", testValue)
+			t.Error("Error get:", restoreValue.format(), ", expect:", testValue.format())
 		}
 	}
 }

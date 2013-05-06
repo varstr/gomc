@@ -19,22 +19,22 @@ type row struct {
 }
 
 type result struct {
-	raw map[string]*row
+	rows map[string]*row
 }
 
 func newResult(size int) *result {
-	return &result{raw: make(map[string]*row, size)}
+	return &result{rows: make(map[string]*row, size)}
 }
 
 func (self *result) set(key string, buffer []byte, flags uint32) {
-	self.raw[key] = &row{
+	self.rows[key] = &row{
 		buffer: buffer,
 		flags:  flags,
 	}
 }
 
 func (self *result) Get(key string, value interface{}) (err error) {
-	if row, ok := self.raw[key]; ok {
+	if row, ok := self.rows[key]; ok {
 		return decode(row.buffer, row.flags, value)
 	}
 	err = fmt.Errorf("No result for key `%s`", key)

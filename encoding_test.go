@@ -1,9 +1,25 @@
 package gomc
 
 import (
+	"bytes"
 	"math/rand"
 	"reflect"
 	"testing"
+	"text/template"
+)
+
+const (
+	_TEST_STRUCT_TPL = `
+    &TestStruct{
+        "Str": {{.Str}}
+        "Int": {{.Int}}
+        "Slice": {
+            {{range $_, $i := .Slice}} {{$i | printf "%q"}}, {{end}}
+        },
+        "Map": {
+            {{range $k, $v := .Map}} {{$k | printf "%q"}}: {{$v | printf "%q"}}, {{end}}
+        }
+    }`
 )
 
 type TestStruct struct {
@@ -32,6 +48,17 @@ func randomStruct() *TestStruct {
 		Slice: []string{randomStr(5), randomStr(5), randomStr(5)},
 		Map:   map[string]string{randomStr(5): randomStr(10), randomStr(5): randomStr(10), randomStr(5): randomStr(10)},
 	}
+}
+
+func (self *TestStruct) format() string {
+	tpl := template.New("tpl")
+	tpl, e := tpl.Parse(_TEST_STRUCT_TPL)
+	if e != nil {
+		panic(e)
+	}
+	var buf bytes.Buffer
+	tpl.Execute(&buf, self)
+	return buf.String()
 }
 
 func equal(origin, restore interface{}) bool {
@@ -81,7 +108,7 @@ func testBaseTypes(origin, restore interface{}, t *testing.T) {
 	}
 }
 
-func testStruct(origin, restore interface{}, encoding EncodingType, t *testing.T) {
+func testStruct(origin, restore *TestStruct, encoding EncodingType, t *testing.T) {
 	b, f, e := encode(origin, encoding)
 	if e != nil {
 		t.Error("Fail to encode:", e)
@@ -90,9 +117,8 @@ func testStruct(origin, restore interface{}, encoding EncodingType, t *testing.T
 	} else if e = decode(b, encodingFlag(encoding), restore); e != nil {
 		t.Error("Fail to decode:", e)
 	} else if !equal(origin, restore) {
-		t.Error("Error restore:", restore, ", expect:", origin)
+		t.Error("Error restore:", restore.format(), ", expect:", origin.format())
 	}
-
 }
 
 func TestBool(t *testing.T) {
