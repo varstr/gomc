@@ -2,8 +2,8 @@
 
 golang binding for libmemcached
 
-- Check Godoc[http://godoc.org/github.com/ianoshen/gomc] for more details.
-- Check libmemcached[http://docs.libmemcached.org/] for even more details. 
+- Check [Godoc](http://godoc.org/github.com/ianoshen/gomc) for more details.
+- Check [libmemcached doc](http://docs.libmemcached.org/) for even more details. 
 
 ##Examples##
 
