@@ -25,7 +25,7 @@ func cString(str string) (*C.char, C.size_t) {
 }
 
 type memcached struct {
-	mmc      *C.memcached_st
+	mc       *C.memcached_st
 	encoding EncodingType
 }
 
@@ -35,8 +35,8 @@ func newMemcached(servers []string, encoding EncodingType) (self *memcached, err
 	defer C.free(unsafe.Pointer(cs_config))
 
 	self = new(memcached)
-	self.mmc = C.memcached(cs_config, config_len)
-	if self.mmc == nil {
+	self.mc = C.memcached(cs_config, config_len)
+	if self.mc == nil {
 		err = self.checkError(
 			C.libmemcached_check_configuration(
 				cs_config, config_len, nil, 0))
@@ -52,13 +52,13 @@ func (self *memcached) encode(object interface{}) ([]byte, uint32, error) {
 
 func (self *memcached) checkError(returnCode C.memcached_return_t) error {
 	if C.memcached_failed(returnCode) {
-		return errors.New(C.GoString(C.memcached_strerror(self.mmc, returnCode)))
+		return errors.New(C.GoString(C.memcached_strerror(self.mc, returnCode)))
 	}
 	return nil
 }
 
 func (self *memcached) LastErrorMessage() string {
-	return C.GoString(C.memcached_last_error_message(self.mmc))
+	return C.GoString(C.memcached_last_error_message(self.mc))
 }
 
 func (self *memcached) AddServer(host string, port int, weight uint32) error {
@@ -66,24 +66,24 @@ func (self *memcached) AddServer(host string, port int, weight uint32) error {
 	defer C.free(unsafe.Pointer(cs_host))
 	return self.checkError(
 		C.memcached_server_add_with_weight(
-			self.mmc, cs_host, C.in_port_t(port), C.uint32_t(weight)))
+			self.mc, cs_host, C.in_port_t(port), C.uint32_t(weight)))
 }
 
 func (self *memcached) SetBehavior(behavior BehaviorType, value uint64) error {
 	return self.checkError(
 		C.memcached_behavior_set(
-			self.mmc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
+			self.mc, C.memcached_behavior_t(behavior), C.uint64_t(value)))
 }
 
 func (self *memcached) GetBehavior(behavior BehaviorType) (uint64, error) {
-	return uint64(C.memcached_behavior_get(self.mmc, C.memcached_behavior_t(behavior))), nil
+	return uint64(C.memcached_behavior_get(self.mc, C.memcached_behavior_t(behavior))), nil
 }
 
 func (self *memcached) GenerateHash(key string) (uint32, error) {
 	cs_key, key_len := cString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 
-	return uint32(C.memcached_generate_hash(self.mmc, cs_key, key_len)), nil
+	return uint32(C.memcached_generate_hash(self.mc, cs_key, key_len)), nil
 }
 
 func (self *memcached) Increment(key string, offset uint32) (value uint64, err error) {
@@ -91,7 +91,7 @@ func (self *memcached) Increment(key string, offset uint32) (value uint64, err e
 	defer C.free(unsafe.Pointer(cs_key))
 	err = self.checkError(
 		C.memcached_increment(
-			self.mmc, cs_key, key_len, C.uint32_t(offset), (*C.uint64_t)(&value)))
+			self.mc, cs_key, key_len, C.uint32_t(offset), (*C.uint64_t)(&value)))
 	return
 }
 
@@ -100,7 +100,7 @@ func (self *memcached) Decrement(key string, offset uint32) (value uint64, err e
 	defer C.free(unsafe.Pointer(cs_key))
 	err = self.checkError(
 		C.memcached_decrement(
-			self.mmc, cs_key, key_len, C.uint32_t(offset), (*C.uint64_t)(&value)))
+			self.mc, cs_key, key_len, C.uint32_t(offset), (*C.uint64_t)(&value)))
 	return
 }
 
@@ -109,21 +109,21 @@ func (self *memcached) Delete(key string, expiration time.Duration) error {
 	defer C.free(unsafe.Pointer(cs_key))
 	return self.checkError(
 		C.memcached_delete(
-			self.mmc, cs_key, key_len, C.time_t(expiration.Seconds())))
+			self.mc, cs_key, key_len, C.time_t(expiration.Seconds())))
 }
 
 func (self *memcached) Exist(key string) error {
 	cs_key, key_len := cString(key)
 	defer C.free(unsafe.Pointer(cs_key))
-	return self.checkError(C.memcached_exist(self.mmc, cs_key, key_len))
+	return self.checkError(C.memcached_exist(self.mc, cs_key, key_len))
 }
 
 func (self *memcached) FlushBuffers() error {
-	return self.checkError(C.memcached_flush_buffers(self.mmc))
+	return self.checkError(C.memcached_flush_buffers(self.mc))
 }
 
 func (self *memcached) Flush(expiration time.Duration) error {
-	return self.checkError(C.memcached_flush(self.mmc, C.time_t(expiration.Seconds())))
+	return self.checkError(C.memcached_flush(self.mc, C.time_t(expiration.Seconds())))
 }
 
 func (self *memcached) Get(key string, value interface{}) (err error) {
@@ -133,7 +133,7 @@ func (self *memcached) Get(key string, value interface{}) (err error) {
 	cs_key, key_len := cString(key)
 	defer C.free(unsafe.Pointer(cs_key))
 
-	raw := C.memcached_get(self.mmc, cs_key, key_len, value_len, flags, ret)
+	raw := C.memcached_get(self.mc, cs_key, key_len, value_len, flags, ret)
 	buffer := C.GoBytes(unsafe.Pointer(raw), C.int(*value_len))
 	if err = self.checkError(*ret); err != nil {
 		return
@@ -146,9 +146,9 @@ func (self *memcached) getMulti(keys []string) (res *result, err error) {
 	cs_keys := C.malloc(C.size_t(len(keys)) * C.size_t(char_size))
 	defer C.free(cs_keys)
 
-	size_size := unsafe.Sizeof(C.size_t(0))
-	key_sizes := C.malloc(C.size_t(len(keys)) * C.size_t(size_size))
-	defer C.free(key_sizes)
+	len_size := unsafe.Sizeof(C.size_t(0))
+	key_lens := C.malloc(C.size_t(len(keys)) * C.size_t(len_size))
+	defer C.free(key_lens)
 
 	for i, key := range keys {
 		cs_key, key_len := cString(key)
@@ -157,11 +157,11 @@ func (self *memcached) getMulti(keys []string) (res *result, err error) {
 		key_pos := (**C.char)(unsafe.Pointer(uintptr(cs_keys) + uintptr(i)*char_size))
 		*key_pos = cs_key
 
-		size_pos := (*C.size_t)(unsafe.Pointer(uintptr(key_sizes) + uintptr(i)*size_size))
+		size_pos := (*C.size_t)(unsafe.Pointer(uintptr(key_lens) + uintptr(i)*len_size))
 		*size_pos = key_len
 	}
 
-	ret := C.memcached_mget(self.mmc, (**C.char)(cs_keys), (*C.size_t)(key_sizes), C.size_t(len(keys)))
+	ret := C.memcached_mget(self.mc, (**C.char)(cs_keys), (*C.size_t)(key_lens), C.size_t(len(keys)))
 	if err = self.checkError(ret); err != nil {
 		return
 	}
@@ -169,7 +169,7 @@ func (self *memcached) getMulti(keys []string) (res *result, err error) {
 	rc := new(C.memcached_return_t)
 	res = newResult(len(keys))
 	for {
-		if raw := C.memcached_fetch_result(self.mmc, nil, rc); raw != nil && ReturnType(*rc) != END {
+		if raw := C.memcached_fetch_result(self.mc, nil, rc); raw != nil && ReturnType(*rc) != END {
 			key := C.memcached_result_key_value(raw)
 			buffer := C.memcached_result_value(raw)
 			buffer_len := C.memcached_result_length(raw)
@@ -198,7 +198,7 @@ func (self *memcached) Add(key string, value interface{}, expiration time.Durati
 
 	return self.checkError(
 		C.memcached_add(
-			self.mmc, cs_key, key_len, cs_value, value_len,
+			self.mc, cs_key, key_len, cs_value, value_len,
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
 }
 
@@ -214,7 +214,7 @@ func (self *memcached) Replace(key string, value interface{}, expiration time.Du
 
 	return self.checkError(
 		C.memcached_replace(
-			self.mmc, cs_key, key_len, cs_value, value_len,
+			self.mc, cs_key, key_len, cs_value, value_len,
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
 }
 
@@ -230,6 +230,6 @@ func (self *memcached) Set(key string, value interface{}, expiration time.Durati
 
 	return self.checkError(
 		C.memcached_set(
-			self.mmc, cs_key, key_len, cs_value, value_len,
+			self.mc, cs_key, key_len, cs_value, value_len,
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
 }

@@ -15,17 +15,17 @@ import (
 	"unsafe"
 )
 
-type mcPool struct {
+type memcachedPool struct {
 	pool     *C.memcached_pool_st
 	encoding EncodingType
 }
 
-func newPool(servers []string, initSize, maxSize int, encoding EncodingType) (self *mcPool, err error) {
+func newPool(servers []string, initSize, maxSize int, encoding EncodingType) (self *memcachedPool, err error) {
 	config := poolConfig(servers, initSize, maxSize)
 	cs_config := C.CString(config)
 	defer C.free(unsafe.Pointer(cs_config))
 
-	self = new(mcPool)
+	self = new(memcachedPool)
 	self.pool = C.memcached_pool(cs_config, C.size_t(len(config)))
 	if self.pool == nil {
 		err = self.checkError(
@@ -37,27 +37,27 @@ func newPool(servers []string, initSize, maxSize int, encoding EncodingType) (se
 	return
 }
 
-func (self *mcPool) checkError(returnCode C.memcached_return_t) error {
+func (self *memcachedPool) checkError(returnCode C.memcached_return_t) error {
 	if C.memcached_failed(returnCode) {
 		return errors.New(C.GoString(C.memcached_strerror(nil, returnCode)))
 	}
 	return nil
 }
 
-func (self *mcPool) SetBehavior(behavior BehaviorType, value uint64) error {
+func (self *memcachedPool) SetBehavior(behavior BehaviorType, value uint64) error {
 	return self.checkError(
 		C.memcached_pool_behavior_set(
 			self.pool, C.memcached_behavior_t(behavior), C.uint64_t(value)))
 }
 
-func (self *mcPool) GetBehavior(behavior BehaviorType) (value uint64, err error) {
+func (self *memcachedPool) GetBehavior(behavior BehaviorType) (value uint64, err error) {
 	err = self.checkError(
 		C.memcached_pool_behavior_get(
 			self.pool, C.memcached_behavior_t(behavior), (*C.uint64_t)(&value)))
 	return
 }
 
-func (self *mcPool) fetchConnection() (conn *memcached, err error) {
+func (self *memcachedPool) fetchConnection() (conn *memcached, err error) {
 	ret := new(C.memcached_return_t)
 	conn = &memcached{
 		mmc:      C.memcached_pool_fetch(self.pool, nil, ret),
@@ -67,11 +67,11 @@ func (self *mcPool) fetchConnection() (conn *memcached, err error) {
 	return
 }
 
-func (self *mcPool) releaseConnection(conn *memcached) error {
+func (self *memcachedPool) releaseConnection(conn *memcached) error {
 	return self.checkError(C.memcached_pool_release(self.pool, conn.mmc))
 }
 
-func (self *mcPool) GenerateHash(key string) (hash uint32, err error) {
+func (self *memcachedPool) GenerateHash(key string) (hash uint32, err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -82,7 +82,7 @@ func (self *mcPool) GenerateHash(key string) (hash uint32, err error) {
 	return
 }
 
-func (self *mcPool) Increment(key string, offset uint32) (value uint64, err error) {
+func (self *memcachedPool) Increment(key string, offset uint32) (value uint64, err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -92,7 +92,7 @@ func (self *mcPool) Increment(key string, offset uint32) (value uint64, err erro
 	return conn.Increment(key, offset)
 }
 
-func (self *mcPool) Decrement(key string, offset uint32) (value uint64, err error) {
+func (self *memcachedPool) Decrement(key string, offset uint32) (value uint64, err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -102,7 +102,7 @@ func (self *mcPool) Decrement(key string, offset uint32) (value uint64, err erro
 	return conn.Decrement(key, offset)
 }
 
-func (self *mcPool) Delete(key string, expiration time.Duration) (err error) {
+func (self *memcachedPool) Delete(key string, expiration time.Duration) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -112,7 +112,7 @@ func (self *mcPool) Delete(key string, expiration time.Duration) (err error) {
 	return conn.Delete(key, expiration)
 }
 
-func (self *mcPool) Exist(key string) (err error) {
+func (self *memcachedPool) Exist(key string) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -122,7 +122,7 @@ func (self *mcPool) Exist(key string) (err error) {
 	return conn.Exist(key)
 }
 
-func (self *mcPool) Flush(expiration time.Duration) (err error) {
+func (self *memcachedPool) Flush(expiration time.Duration) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -132,7 +132,7 @@ func (self *mcPool) Flush(expiration time.Duration) (err error) {
 	return conn.Flush(expiration)
 }
 
-func (self *mcPool) Get(key string, value interface{}) (err error) {
+func (self *memcachedPool) Get(key string, value interface{}) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -142,7 +142,7 @@ func (self *mcPool) Get(key string, value interface{}) (err error) {
 	return conn.Get(key, value)
 }
 
-func (self *mcPool) GetMulti(keys []string) (res Result, err error) {
+func (self *memcachedPool) GetMulti(keys []string) (res Result, err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -152,7 +152,7 @@ func (self *mcPool) GetMulti(keys []string) (res Result, err error) {
 	return conn.GetMulti(keys)
 }
 
-func (self *mcPool) Add(key string, value interface{}, expiration time.Duration) (err error) {
+func (self *memcachedPool) Add(key string, value interface{}, expiration time.Duration) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -162,7 +162,7 @@ func (self *mcPool) Add(key string, value interface{}, expiration time.Duration)
 	return conn.Add(key, value, expiration)
 }
 
-func (self *mcPool) Replace(key string, value interface{}, expiration time.Duration) (err error) {
+func (self *memcachedPool) Replace(key string, value interface{}, expiration time.Duration) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
@@ -172,7 +172,7 @@ func (self *mcPool) Replace(key string, value interface{}, expiration time.Durat
 	return conn.Replace(key, value, expiration)
 }
 
-func (self *mcPool) Set(key string, value interface{}, expiration time.Duration) (err error) {
+func (self *memcachedPool) Set(key string, value interface{}, expiration time.Duration) (err error) {
 	conn, err := self.fetchConnection()
 	defer self.releaseConnection(conn)
 	if err != nil {
