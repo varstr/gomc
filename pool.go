@@ -60,7 +60,7 @@ func (self *memcachedPool) GetBehavior(behavior BehaviorType) (value uint64, err
 func (self *memcachedPool) fetchConnection() (conn *memcached, err error) {
 	ret := new(C.memcached_return_t)
 	conn = &memcached{
-		mmc:      C.memcached_pool_fetch(self.pool, nil, ret),
+		mc:      C.memcached_pool_fetch(self.pool, nil, ret),
 		encoding: self.encoding,
 	}
 	err = self.checkError(*ret)
@@ -68,7 +68,7 @@ func (self *memcachedPool) fetchConnection() (conn *memcached, err error) {
 }
 
 func (self *memcachedPool) releaseConnection(conn *memcached) error {
-	return self.checkError(C.memcached_pool_release(self.pool, conn.mmc))
+	return self.checkError(C.memcached_pool_release(self.pool, conn.mc))
 }
 
 func (self *memcachedPool) GenerateHash(key string) (hash uint32, err error) {
