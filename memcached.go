@@ -138,50 +138,50 @@ func (self *memcached) Get(key string, value interface{}) (err error) {
 }
 
 func (self *memcached) getMulti(keys []string) (res *result, err error) {
-    char_size := unsafe.Sizeof(new(C.char))
-    cs_keys := C.malloc(C.size_t(len(keys)) * C.size_t(char_size))
-    defer C.free(cs_keys)
+	char_size := unsafe.Sizeof(new(C.char))
+	cs_keys := C.malloc(C.size_t(len(keys)) * C.size_t(char_size))
+	defer C.free(cs_keys)
 
-    size_size := unsafe.Sizeof(C.size_t(0))
-    key_sizes := C.malloc(C.size_t(len(keys)) * C.size_t(size_size))
-    defer C.free(key_sizes)
+	size_size := unsafe.Sizeof(C.size_t(0))
+	key_sizes := C.malloc(C.size_t(len(keys)) * C.size_t(size_size))
+	defer C.free(key_sizes)
 
-    for i, key := range keys {
-        cs_key := C.CString(key)
-        defer C.free(unsafe.Pointer(cs_key))
+	for i, key := range keys {
+		cs_key := C.CString(key)
+		defer C.free(unsafe.Pointer(cs_key))
 
-        key_pos := (**C.char)(unsafe.Pointer(uintptr(cs_keys) + uintptr(i)*char_size))
-        *key_pos = cs_key
+		key_pos := (**C.char)(unsafe.Pointer(uintptr(cs_keys) + uintptr(i)*char_size))
+		*key_pos = cs_key
 
-        size_pos := (*C.size_t)(unsafe.Pointer(uintptr(key_sizes) + uintptr(i)*size_size))
-        *size_pos = C.size_t(len(key)+1)
-    }
+		size_pos := (*C.size_t)(unsafe.Pointer(uintptr(key_sizes) + uintptr(i)*size_size))
+		*size_pos = C.size_t(len(key) + 1)
+	}
 
-    ret := C.memcached_mget(self.mmc, (**C.char)(cs_keys), (*C.size_t)(key_sizes), C.size_t(len(keys)))
-    if err = self.checkError(ret); err != nil {
-        return
-    }
+	ret := C.memcached_mget(self.mmc, (**C.char)(cs_keys), (*C.size_t)(key_sizes), C.size_t(len(keys)))
+	if err = self.checkError(ret); err != nil {
+		return
+	}
 
-    rc := new(C.memcached_return_t)
-    //raw := C.memcached_result_create(self.mmc, nil)
-    //defer C.memcached_result_free(raw)
-    res = newResult(len(keys))
-    for {
-        if raw := C.memcached_fetch_result(self.mmc, nil, rc); raw != nil && ReturnType(*rc) != END {
-            key := C.memcached_result_key_value(raw)
-            buffer := C.memcached_result_value(raw)
-            buffer_len := C.memcached_result_length(raw)
-            flags := C.memcached_result_flags(raw)
-            res.set(C.GoString(key), C.GoBytes(unsafe.Pointer(buffer), C.int(buffer_len)), uint32(flags))
-        } else {
-            break
-        }
-    }
-    return
+	rc := new(C.memcached_return_t)
+	//raw := C.memcached_result_create(self.mmc, nil)
+	//defer C.memcached_result_free(raw)
+	res = newResult(len(keys))
+	for {
+		if raw := C.memcached_fetch_result(self.mmc, nil, rc); raw != nil && ReturnType(*rc) != END {
+			key := C.memcached_result_key_value(raw)
+			buffer := C.memcached_result_value(raw)
+			buffer_len := C.memcached_result_length(raw)
+			flags := C.memcached_result_flags(raw)
+			res.set(C.GoString(key), C.GoBytes(unsafe.Pointer(buffer), C.int(buffer_len)), uint32(flags))
+		} else {
+			break
+		}
+	}
+	return
 }
 
 func (self *memcached) GetMulti(keys []string) (Result, error) {
-    return self.getMulti(keys)
+	return self.getMulti(keys)
 }
 
 func (self *memcached) Add(key string, value interface{}, expiration time.Duration) (err error) {

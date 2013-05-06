@@ -1,7 +1,7 @@
 package gomc
 
 import (
-    "math/rand"
+	"math/rand"
 	"reflect"
 	"testing"
 )

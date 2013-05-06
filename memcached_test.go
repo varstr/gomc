@@ -1,18 +1,21 @@
 package gomc
 
 import (
+	"bufio"
 	"os/exec"
 	"reflect"
-    "strconv"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
 
 const (
-	_MC_CMD           = "memcached"
-	_MC_FLAG_SOCKET   = "-s"
-	_MC_FLAG_TCP_PORT = "-p"
+	_MC_CMD               = "memcached"
+	_MC_FLAG_SOCKET       = "-s"
+	_MC_FLAG_TCP_PORT     = "-p"
+	_MC_FLAG_VERY_VERBOSE = "-vv"
+	_MC_START_LISTENING   = "server listening"
 )
 
 var (
@@ -32,15 +35,24 @@ var (
 func start(servers []string) (cmds []*exec.Cmd) {
 	cmds = make([]*exec.Cmd, 0, len(servers))
 	for _, server := range servers {
-		var args []string
+		args := []string{_MC_FLAG_VERY_VERBOSE}
 		if strings.HasPrefix(server, "/") {
-			args = []string{_MC_FLAG_SOCKET, server}
+			args = append(args, _MC_FLAG_SOCKET, server)
 		} else {
 			port := strings.Split(server, ":")[1]
-			args = []string{_MC_FLAG_TCP_PORT, port}
+			args = append(args, _MC_FLAG_TCP_PORT, port)
 		}
 		cmd := exec.Command(_MC_CMD, args...)
+		stderr, _ := cmd.StderrPipe()
+		buf := bufio.NewReader(stderr)
+
 		cmd.Start()
+		for {
+			line, _ := buf.ReadString('\n')
+			if strings.Contains(line, _MC_START_LISTENING) {
+				break
+			}
+		}
 		cmds = append(cmds, cmd)
 	}
 	return
@@ -134,48 +146,48 @@ func TestGetMulti(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-    num := 10
-    testKeyPrefix := "test-key:"
-    testKeys := make([]string, num)
-    testStructs := make(map[string]*TestStruct, num)
+	num := 10
+	testKeyPrefix := "test-key:"
+	testKeys := make([]string, num)
+	testStructs := make(map[string]*TestStruct, num)
 	restoreValue := new(TestStruct)
 	mc, err := newMemcached(testHosts, ENCODING_JSON)
 	if err != nil {
 		t.Error("Fail to new client:", err)
 	}
 
-    for i:=0; i<num; i++ {
-        testKey := testKeyPrefix + strconv.Itoa(i)
-        testValue := randomStruct()
-        testKeys = append(testKeys, testKey)
-        testStructs[testKey] = testValue
-        if err = mc.Set(testKey, testValue, 0); err != nil {
-            t.Error("Fail to set:", err)
-        }
-    }
+	for i := 0; i < num; i++ {
+		testKey := testKeyPrefix + strconv.Itoa(i)
+		testValue := randomStruct()
+		testKeys = append(testKeys, testKey)
+		testStructs[testKey] = testValue
+		if err = mc.Set(testKey, testValue, 0); err != nil {
+			t.Error("Fail to set:", err)
+		}
+	}
 
-    res, err := mc.GetMulti(testKeys)
-    if err != nil {
+	res, err := mc.GetMulti(testKeys)
+	if err != nil {
 		t.Error("Fail to get-multi:", err)
 	}
 
-    t.Log(res)
+	t.Log(res)
 
-    for testKey, testValue := range testStructs {
-        if err := res.Get(testKey, restoreValue); err != nil {
-            t.Error("Fail to get:", err)
-        } else if !reflect.DeepEqual(testValue, restoreValue) {
-            t.Error("Error get:", restoreValue, ", expect:", testValue)
-        }
-    }
+	for testKey, testValue := range testStructs {
+		if err := res.Get(testKey, restoreValue); err != nil {
+			t.Error("Fail to get:", err)
+		} else if !reflect.DeepEqual(testValue, restoreValue) {
+			t.Error("Error get:", restoreValue, ", expect:", testValue)
+		}
+	}
 }
 
 func TestDelete(t *testing.T) {
 	cmds := start(testHosts)
 	defer stop(cmds)
 
-    testKey   := "test-key"
-    testValue := "test-value"
+	testKey := "test-key"
+	testValue := "test-value"
 	mc, err := newMemcached(testHosts, ENCODING_DEFAULT)
 	if err != nil {
 		t.Error("Fail to new client:", err)

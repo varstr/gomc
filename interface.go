@@ -5,7 +5,7 @@ import (
 )
 
 type Result interface {
-    Get(string, interface{}) error
+	Get(string, interface{}) error
 }
 
 type Client interface {
@@ -18,7 +18,7 @@ type Client interface {
 	Exist(string) error
 	Flush(time.Duration) error
 	Get(string, interface{}) error
-    GetMulti([]string) (Result, error)
+	GetMulti([]string) (Result, error)
 	Add(string, interface{}, time.Duration) error
 	Replace(string, interface{}, time.Duration) error
 	Set(string, interface{}, time.Duration) error
@@ -30,4 +30,3 @@ func NewClient(servers []string, poolSize int, encoding EncodingType) (self Clie
 	}
 	return newPool(servers, 1, poolSize, encoding)
 }
-
