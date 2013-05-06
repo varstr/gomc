@@ -34,7 +34,7 @@ func main() {
 
     keys := []string{"key1", "key2", "key3"}
     res, _ := cli.GetMulti(keys)
-    for _, key := keys {
+    for _, key := range keys {
         var val string
         res.Get(key, &val)
         fmt.Println(val)
