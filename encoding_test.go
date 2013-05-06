@@ -205,6 +205,28 @@ func TestStructJSON(t *testing.T) {
 	testStruct(origin, restore, ENCODING_JSON, t)
 }
 
+func BenchmarkEncodeDefault(b *testing.B) {
+	b.StopTimer()
+	origin := randomStr(10)
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		encode(origin, ENCODING_DEFAULT)
+	}
+}
+
+func BenchmarkDecodeDefault(b *testing.B) {
+	b.StopTimer()
+	origin := randomStr(10)
+	restore := new(string)
+	buffer, flag, _ := encode(origin, ENCODING_DEFAULT)
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		decode(buffer, flag, restore)
+	}
+}
+
 func benchmarkEncode(b *testing.B, encoding EncodingType) {
 	b.StopTimer()
 	origin := randomStruct()
