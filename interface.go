@@ -22,6 +22,7 @@ type Client interface {
 	Add(string, interface{}, time.Duration) error
 	Replace(string, interface{}, time.Duration) error
 	Set(string, interface{}, time.Duration) error
+	Close()
 }
 
 func NewClient(servers []string, poolSize int, encoding EncodingType) (self Client, err error) {

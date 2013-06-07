@@ -175,6 +175,7 @@ func (self *memcached) getMulti(keys []string) (res *result, err error) {
 			buffer_len := C.memcached_result_length(raw)
 			flags := C.memcached_result_flags(raw)
 			res.set(C.GoString(key), C.GoBytes(unsafe.Pointer(buffer), C.int(buffer_len)), uint32(flags))
+			C.memcached_result_free(raw)
 		} else {
 			break
 		}
@@ -232,4 +233,8 @@ func (self *memcached) Set(key string, value interface{}, expiration time.Durati
 		C.memcached_set(
 			self.mc, cs_key, key_len, cs_value, value_len,
 			C.time_t(expiration.Seconds()), C.uint32_t(flag)))
+}
+
+func (self *memcached) Close() {
+	C.memcached_free(self.mc)
 }
