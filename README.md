@@ -25,6 +25,7 @@ var (
 
 func main() {
     cli, _ := gomc.NewClient(servers, 1, gomc.ENCODING_DEFAULT)
+    defer cli.Close()
     cli.SetBehavior(gomc.BEHAVIOR_TCP_KEEPALIVE, 1)
     cli.SetBehavior(gomc.BEHAVIOR_HASH, uint64(gomc.HASH_MD5))
 
