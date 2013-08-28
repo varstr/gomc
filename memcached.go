@@ -134,6 +134,7 @@ func (self *memcached) Get(key string, value interface{}) (err error) {
 	defer C.free(unsafe.Pointer(cs_key))
 
 	raw := C.memcached_get(self.mc, cs_key, key_len, value_len, flags, ret)
+	defer C.free(unsafe.Pointer(raw))
 	buffer := C.GoBytes(unsafe.Pointer(raw), C.int(*value_len))
 	if err = self.checkError(*ret); err != nil {
 		return
